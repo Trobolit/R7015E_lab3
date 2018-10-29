@@ -1,6 +1,4 @@
 function [lh] = LH(x,y,u)
-%LH Summary of this function goes here
-%   Detailed explanation goes here
 
 %x(1)=a, x(2)=bu, x(3)=bo, x(4)=sigma2
 N=numel(y);
