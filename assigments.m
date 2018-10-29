@@ -128,25 +128,37 @@ flho_int = @(uo)LHO_int(uo,uo_extra, yo,x,diffs);
 options = optimoptions('ga');
 %options.MaxTime = 60;
 options.FunctionTolerance = 1e-10;
+%options.MaxGenerations = (N_openings+1)*1000;
+%options.PopulationSize = 2000; % This made it worse??
 N_openings = sum(logical(diff(occupancy_training)));
-[xoi,fvaloi] = ga(flho_int,N_openings+1,[],[],[],[],zeros(N_openings+1,1),10*ones(N_openings+1,1),[],[1:N_openings+1]',options); % Minimize!
+max_ppl = 8;
+[xoi,fvaloi] = ga(flho_int,N_openings+1,[],[],[],[],zeros(N_openings+1,1),max_ppl*ones(N_openings+1,1),[],[1:N_openings+1]',options); % Minimize!
 %fvalo    %Resulting function value
 %xo      %
 
 
 xoi_full = fill_out( xoi, diffs, N );
 
+%%
 figure();
 hold on;
 plot(xo);
 plot(occupancy_training);
 legend('fmincon','orginal');
 hold off;
+
 figure();
 hold on;
 scatter(1:N,xoi_full,'x')
 scatter(1:N+1,occupancy_training,'.');
 scatter(find(diffs>0),occupancy_training(diffs>0).*diffs(diffs>0),'+');
+legend('ga','orginal');
+hold off;
+
+figure();
+hold on;
+plot(1:N,xoi_full)
+plot(1:N+1,occupancy_training);
 legend('ga','orginal');
 hold off;
 %%
@@ -161,4 +173,9 @@ plot(x(1:3)*[u(1:2,:);xoi_full']);
 
 %plot(100*logical(diff(u(3,:))));
 legend('y','estimated', 'estimated using estimated occupancy');
+title('CO2 training');
 hold off;
+
+fprintf('Note that the occupancy estimator is not perfect, but \nits imperfections allow the original model to better predict CO2.\n');
+fprintf('These are mean square errors for the CO2 estimates using the model fed with different occupancies\n');
+fprintf('fed with real data: %f\nfed with estimated data: %f\n',immse(x(1:3)*u, y), immse(x(1:3)*[u(1:2,:);xoi_full'], y));
