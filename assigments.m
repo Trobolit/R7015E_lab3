@@ -111,3 +111,54 @@ histogram(plotdata-u(3,:),'BinWidth',0.5);
 
 hold off;
 
+%% Use first model but use fmincon on u instead of parameters.
+
+uo_extra = [CO2_training(1:end-1)'; ventilation_training(1:end-1)'];
+yo = CO2_training(2:end)';   % Outputs
+N = numel(occupancy_training)-1;
+x0o = zeros(N,1);     %Initial occupancy guesses.
+flho = @(uo)LHO(uo,uo_extra, yo,x);        %function handle for funciton to minimize
+
+options = optimoptions('fmincon');
+%options.MaxFunctionEvaluations = 10^5;
+[xo,fvalo] = fmincon(flho,x0o', [],[],[],[],[],[],[],options); % Minimize!
+
+diffs = logical(diff(occupancy_training)); % one less than N
+flho_int = @(uo)LHO_int(uo,uo_extra, yo,x,diffs);
+options = optimoptions('ga');
+%options.MaxTime = 60;
+options.FunctionTolerance = 1e-10;
+N_openings = sum(logical(diff(occupancy_training)));
+[xoi,fvaloi] = ga(flho_int,N_openings+1,[],[],[],[],zeros(N_openings+1,1),10*ones(N_openings+1,1),[],[1:N_openings+1]',options); % Minimize!
+%fvalo    %Resulting function value
+%xo      %
+
+
+xoi_full = fill_out( xoi, diffs, N );
+
+figure();
+hold on;
+plot(xo);
+plot(occupancy_training);
+legend('fmincon','orginal');
+hold off;
+figure();
+hold on;
+scatter(1:N,xoi_full,'x')
+scatter(1:N+1,occupancy_training,'.');
+scatter(find(diffs>0),occupancy_training(diffs>0).*diffs(diffs>0),'+');
+legend('ga','orginal');
+hold off;
+%%
+figure();
+u = [CO2_training(1:end-1)'; ventilation_training(1:end-1)'; occupancy_training(1:end-1)']; % Inputs
+y = CO2_training(2:end)';   % Outputs
+
+hold on;
+plot(y); % equal to CO2_training(2:end)
+plot(x(1:3)*u);
+plot(x(1:3)*[u(1:2,:);xoi_full']);
+
+%plot(100*logical(diff(u(3,:))));
+legend('y','estimated', 'estimated using estimated occupancy');
+hold off;
