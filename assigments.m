@@ -121,7 +121,7 @@ flho = @(uo)LHO(uo,uo_extra, yo,x);        %function handle for funciton to mini
 
 options = optimoptions('fmincon');
 %options.MaxFunctionEvaluations = 10^5;
-[xo,fvalo] = fmincon(flho,x0o', [],[],[],[],[],[],[],options); % Minimize!
+[xo,fvalo] = fmincon(flho,x0o', [],[],[],[],[zeros(N,1)-0.4],[],[],options); % Minimize!
 
 diffs = logical(diff(occupancy_training)); % one less than N
 flho_int = @(uo)LHO_int(uo,uo_extra, yo,x,diffs);
@@ -131,22 +131,42 @@ options.FunctionTolerance = 1e-10;
 %options.MaxGenerations = (N_openings+1)*1000;
 %options.PopulationSize = 2000; % This made it worse??
 N_openings = sum(logical(diff(occupancy_training)));
-max_ppl = 8;
+max_ppl = 4;
 [xoi,fvaloi] = ga(flho_int,N_openings+1,[],[],[],[],zeros(N_openings+1,1),max_ppl*ones(N_openings+1,1),[],[1:N_openings+1]',options); % Minimize!
 %fvalo    %Resulting function value
 %xo      %
 
 
 xoi_full = fill_out( xoi, diffs, N );
-
-%%
+%% fmincon plot
 figure();
 hold on;
-plot(xo);
+plot(( conv(bartlett(4)./sum(bartlett(4)), xo) ));
 plot(occupancy_training);
 legend('fmincon','orginal');
 hold off;
 
+%% SPecial fmincon
+x0o = zeros(N_openings+1,1);     %Initial occupancy guesses.
+options = optimoptions('fmincon');
+options.MaxFunctionEvaluations = 10^5;
+[xo2,fvalo] = fmincon(flho_int,x0o', [],[],[],[],[zeros(N_openings+1,1)-0.4],[10*ones(N_openings+1,1)],[],options); % Minimize!
+xo2 = fill_out( xo2, diffs, N );
+% fmincon plot special
+figure();
+hold on;
+plot(round(xo2));
+plot(occupancy_training);
+legend('fmincon','orginal');
+hold off;
+
+figure();
+hold on;
+plot(round(xo2)-occupancy_training(1:end-1));
+legend('fmincon','orginal');
+hold off;
+
+%% ga plots
 figure();
 hold on;
 scatter(1:N,xoi_full,'x')
