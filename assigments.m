@@ -8,7 +8,7 @@ occupancy_test = textread('testing-occupancy.txt','%f');
 ventilation_test = textread('testing-ventilation.txt','%f');
 
 %% Ass 1
-
+%{
 % Since we assume gaussian noise we will have that the likelihood = least
 % squares. Use mldivide.
 
@@ -18,6 +18,7 @@ thetahat = y/u;
 a = thetahat(1);
 bu = thetahat(2);
 bo = thetahat(3);
+%}
 
 %% Solution not using Least Squares, but Maximum Likelihood.
 
@@ -49,15 +50,17 @@ hold off;
 
 %% figure 1.1, histogram on errors in estimates on test data.
 figure(11);
+thetahat = x(1:3);
 ytest = CO2_test(2:end)';
 utest = [CO2_test(1:end-1)'; ventilation_test(1:end-1)'; occupancy_test(1:end-1)'];
 hold on;
-histogram(ytest - thetahat*utest,'DisplayStyle','stairs','BinWidth',1);
+histogram(ytest - thetahat*utest - mean(ytest - thetahat*utest),'BinWidth',0.5,'Normalization','probability');
 %histogram(normrnd(zeros(numel(y),1),var(y - thetahat*u).^0.5),'DisplayStyle','stairs');
-histogram(normrnd(zeros(numel(ytest),1),4.1283),'BinWidth',1);
+histogram(normrnd(zeros(1000*numel(ytest),1),x(4)),'BinWidth',0.5,'Normalization','probability');
 xlim([-20,20]);
 legend('errors in predictions test data','simulated normrnd');
 hold off;
+matlab2tikz('testerrors.tex');
 
 %% Figure 2, time plots of estimates
 figure(2);
@@ -179,8 +182,25 @@ figure();
 hold on;
 plot(1:N,xoi_full)
 plot(1:N+1,occupancy_training);
-legend('ga','orginal');
+legend('ga estimate','actual occupancy');
 hold off;
+matlab2tikz('oestimate.tex');
+
+figure();
+hold on;
+plot(xoi_full- occupancy_training(1:end-1))
+legend('error in estimation of occupancy');
+hold off;
+matlab2tikz('oesterror.tex');
+
+%% Ga histogram
+hold on;
+histogram(occupancy_training(1:end-1) - xoi_full); %,'BinWidth',1,'Normalization','probability');
+%histogram(normrnd(zeros(1000*numel(ytest),1),x(4)),'BinWidth',0.5,'Normalization','probability');
+%xlim([-20,20]);
+legend('errors in predictions test data','simulated normrnd');
+hold off;
+
 %%
 figure();
 u = [CO2_training(1:end-1)'; ventilation_training(1:end-1)'; occupancy_training(1:end-1)']; % Inputs
